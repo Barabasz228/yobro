@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Defense - Gra</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e0e0e0;
+            text-align: center;
+        }
+
+        canvas {
+            background-color: #222;
+            border: 2px solid #555;
+        }
+
+        #info {
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gra Tower Defense</h1>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+    <div id="info">
+        <p>Złoto: <span id="gold">100</span></p>
+        <p>Wrogowie zabici: <span id="enemiesDefeated">0</span></p>
+    </div>
+
+    <script>
+        // Pobieranie elementów HTML
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const goldEl = document.getElementById('gold');
+        const enemiesDefeatedEl = document.getElementById('enemiesDefeated');
+
+        // Wartości początkowe
+        let gold = 100;
+        let enemiesDefeated = 0;
+        let towers = [];
+        let enemies = [];
+        let enemySpeed = 1;
+        let towerCost = 50;
+
+        // Klasy obiektów gry
+        class Tower {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.range = 100;
+                this.fireRate = 50;
+                this.counter = 0;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 15, 0, Math.PI * 2);
+                ctx.fillStyle = "blue";
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            shoot(enemies) {
+                this.counter++;
+                if (this.counter >= this.fireRate) {
+                    this.counter = 0;
+                    for (let enemy of enemies) {
+                        let distance = Math.hypot(enemy.x - this.x, enemy.y - this.y);
+                        if (distance < this.range) {
+                            enemy.health -= 10;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        class Enemy {
+            constructor() {
+                this.x = 0;
+                this.y = canvas.height / 2;
+                this.health = 100;
+            }
+
+            draw() {
+                ctx.fillStyle = "red";
+                ctx.fillRect(this.x, this.y, 30, 30);
+            }
+
+            move() {
+                this.x += enemySpeed;
+            }
+        }
+
+        // Funkcja rysowania wszystkiego na ekranie
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Rysowanie wież
+            for (let tower of towers) {
+                tower.draw();
+                tower.shoot(enemies);
+            }
+
+            // Rysowanie wrogów
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let enemy = enemies[i];
+                enemy.move();
+                enemy.draw();
+
+                if (enemy.health <= 0) {
+                    enemies.splice(i, 1);
+                    gold += 10;
+                    enemiesDefeated++;
+                } else if (enemy.x > canvas.width) {
+                    enemies.splice(i, 1);
+                }
+            }
+
+            // Aktualizacja interfejsu
+            goldEl.textContent = gold;
+            enemiesDefeatedEl.textContent = enemiesDefeated;
+
+            requestAnimationFrame(draw);
+        }
+
+        // Dodanie wieży na kliknięcie
+        canvas.addEventListener('click', (e) => {
+            let rect = canvas.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+
+            if (gold >= towerCost) {
+                towers.push(new Tower(x, y));
+                gold -= towerCost;
+            }
+        });
+
+        // Generowanie wrogów co kilka sekund
+        setInterval(() => {
+            enemies.push(new Enemy());
+        }, 2000);
+
+        // Start gry
+        draw();
+    </script>
+</body>
+</html>
